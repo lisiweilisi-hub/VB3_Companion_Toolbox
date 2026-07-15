@@ -75,6 +75,7 @@ Geometry.Y = cell(nTraj, 1);
 
 Geometry.DX = cell(nTraj, 1);
 Geometry.DY = cell(nTraj, 1);
+Geometry.Displacement = cell(nTraj, 1);
 
 Geometry.StepLength = cell(nTraj, 1);
 Geometry.Direction = cell(nTraj, 1);
@@ -116,17 +117,11 @@ for i = 1:nTraj
         continue
     end
 
-    % Most vbSPT-derived trajectories in your data are N x 3:
-    % col1 = x, col2 = y, col3 = usually zero / unused
-    if size(trj,2) < 2
-        error('Trajectory %d has fewer than 2 columns.', i);
-    end
-
-    x = trj(:,1);
-    y = trj(:,2);
-
-    x = x(:);
-    y = y(:);
+    % Geometry owns the canonical coordinate vectors and all primitives
+    % derived from them. Downstream modules should consume these fields
+    % instead of independently extracting coordinates and recomputing
+    % whole-trajectory displacement quantities.
+    [x, y] = canonicalCoordinates(trj, i);
 
     nPoint = numel(x);
 
@@ -139,46 +134,30 @@ for i = 1:nTraj
 
     Geometry.Time{i} = (0:nPoint-1)' * dt;
 
+    primitives = trajectoryPrimitives(x, y, dt);
+
+    Geometry.DX{i} = primitives.DX;
+    Geometry.DY{i} = primitives.DY;
+    Geometry.Displacement{i} = primitives.Displacement;
+    Geometry.StepLength{i} = primitives.StepLength;
+    Geometry.Direction{i} = primitives.Direction;
+    Geometry.Velocity{i} = primitives.Velocity;
+    Geometry.Acceleration{i} = primitives.Acceleration;
+
     if nPoint < 2
-        Geometry.DX{i} = [];
-        Geometry.DY{i} = [];
-        Geometry.StepLength{i} = [];
-        Geometry.Direction{i} = [];
-        Geometry.Velocity{i} = [];
-        Geometry.Acceleration{i} = [];
         Geometry.NetDisplacement(i) = 0;
         Geometry.CumulativeDistance(i) = 0;
         Geometry.NSteps(i) = 0;
         continue
     end
 
-    dx = diff(x);
-    dy = diff(y);
-
-    step = sqrt(dx.^2 + dy.^2);
-    direction = atan2d(dy, dx);
-    vel = step / dt;
-
-    if numel(vel) > 1
-        acc = diff(vel) / dt;
-    else
-        acc = [];
-    end
-
-    Geometry.DX{i} = dx;
-    Geometry.DY{i} = dy;
-    Geometry.StepLength{i} = step;
-    Geometry.Direction{i} = direction;
-    Geometry.Velocity{i} = vel;
-    Geometry.Acceleration{i} = acc;
-
     Geometry.NetDisplacement(i) = sqrt((x(end) - x(1))^2 + (y(end) - y(1))^2);
-    Geometry.CumulativeDistance(i) = sum(step);
+    Geometry.CumulativeDistance(i) = sum(primitives.StepLength);
 
-    Geometry.NSteps(i) = numel(step);
+    Geometry.NSteps(i) = numel(primitives.StepLength);
 
-    totalSteps = totalSteps + numel(step);
-    totalDistance = totalDistance + sum(step);
+    totalSteps = totalSteps + numel(primitives.StepLength);
+    totalDistance = totalDistance + sum(primitives.StepLength);
     validTracks = validTracks + 1;
 
 end
@@ -233,6 +212,63 @@ fprintf('Geometry layer created successfully.\n');
 fprintf('=====================================================\n');
 
 end
+
+% =====================================================================
+function [x, y] = canonicalCoordinates(trj, trajectoryIndex)
+
+% Most vbSPT-derived trajectories are N x 3. The first two columns are
+% canonical X/Y; additional columns are intentionally ignored.
+if size(trj, 2) < 2
+    error('Trajectory %d has fewer than 2 columns.', trajectoryIndex);
+end
+
+x = trj(:, 1);
+y = trj(:, 2);
+x = x(:);
+y = y(:);
+
+end
+
+
+% =====================================================================
+function primitives = trajectoryPrimitives(x, y, dt)
+
+primitives = struct();
+primitives.DX = [];
+primitives.DY = [];
+primitives.Displacement = [];
+primitives.StepLength = [];
+primitives.Direction = [];
+primitives.Velocity = [];
+primitives.Acceleration = [];
+
+if numel(x) < 2
+    return
+end
+
+dx = diff(x);
+dy = diff(y);
+displacement = [dx dy];
+step = sqrt(dx.^2 + dy.^2);
+direction = atan2d(dy, dx);
+velocity = step / dt;
+
+if numel(velocity) > 1
+    acceleration = diff(velocity) / dt;
+else
+    acceleration = [];
+end
+
+primitives.DX = dx;
+primitives.DY = dy;
+primitives.Displacement = displacement;
+primitives.StepLength = step;
+primitives.Direction = direction;
+primitives.Velocity = velocity;
+primitives.Acceleration = acceleration;
+
+end
+
 
 % =====================================================================
 function y = meanIgnoringNaN(x)
