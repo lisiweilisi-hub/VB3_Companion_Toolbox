@@ -52,7 +52,7 @@ SPT\_Kinematics\_Step
 
 Status
 
-RC002 (Geometry Provider) Frozen
+Implemented, pending MATLAB R2016b test
 
 
 
