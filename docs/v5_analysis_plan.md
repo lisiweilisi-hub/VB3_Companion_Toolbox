@@ -55,9 +55,11 @@ flowchart LR
     DS --> MSD["SPT_MSD"]
     DS --> TA["SPT_TurningAngle"]
     DS --> CONF["SPT_Confinement"]
-    GEO -. "StepLength" .-> LOC
-    GEO -. "motion summaries" .-> TRK
-    GEO -. "Direction" .-> TA
+    GEO -. "StepLength (optional today)" .-> LOC
+    GEO -. "coordinates and segment primitives (target)" .-> SEG
+    GEO -. "motion summaries (optional today)" .-> TRK
+    GEO -. "Direction and StepLength (optional today)" .-> TA
+    GEO -. "coordinates and global distances (target)" .-> CONF
     LOC --> STATE["SPT_State"]
     SEG --> STATE
     LOC --> FIG["Figures"]
@@ -76,6 +78,17 @@ flowchart LR
 Solid arrows are required data flow. Dashed arrows are optional/fallback use in
 the current implementation. A v5 refactor should make validated Geometry the
 canonical source while retaining all existing output locations.
+
+The RC002 dependency audit found that `SPT_Localization`, `SPT_Track`, and
+`SPT_TurningAngle` already read Geometry but still permit missing-field or
+missing-layer fallbacks. `SPT_Segment` recomputes coordinates, step length,
+velocity, and direction, while `SPT_Confinement` recomputes coordinates and
+whole-trajectory step/cumulative/net displacement. Those whole-trajectory paths
+must become required Geometry consumers before `SPT_CreateGeometry` can be the
+only provider. Confinement's sliding-window distances remain local analysis
+metrics rather than duplicates of whole-trajectory Geometry fields. Removing
+these downstream paths requires edits to those modules and is therefore outside
+the source-file scope of RC002.
 
 ## Frozen current semantics
 

@@ -38,31 +38,25 @@ Milestone 1 — Kinematics
 
 
 
+Current RC
+
+RC003
+
+
+
 Current Module
 
-SPT\_CreateGeometry (RC001)
+SPT\_Kinematics\_Step
 
 
 
-Current State
+Status
 
-Regression harness completed.
-
-SPT\_CreateGeometry refactored.
-
-Waiting for Geometry Provider freeze.
+RC002 (Geometry Provider) Frozen
 
 
 
-Next Task
+Next
 
-RC002
-
-Review and freeze SPT\_CreateGeometry.
-
-
-
-Then:
-
-Start SPT\_Kinematics\_Step.
+Implement SPT\_Kinematics\_Step
 

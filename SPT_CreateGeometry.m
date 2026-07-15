@@ -28,6 +28,10 @@ fprintf('=====================================================\n');
 %% Validation
 %% --------------------------------------------------------
 
+if ~isstruct(Project) || ~isscalar(Project)
+    error('Project must be a scalar structure.');
+end
+
 if nargin < 2 || isempty(Config)
     if isfield(Project, 'Config') && ~isempty(Project.Config)
         Config = Project.Config;
@@ -36,24 +40,53 @@ if nargin < 2 || isempty(Config)
     end
 end
 
-if ~isfield(Project, 'Flags') || ~isfield(Project.Flags, 'Dataset') || ~Project.Flags.Dataset
+if ~isfield(Project, 'Flags') || ~isstruct(Project.Flags) || ...
+        ~isscalar(Project.Flags) || ...
+        ~isfield(Project.Flags, 'Dataset') || ...
+        ~isscalar(Project.Flags.Dataset) || ~Project.Flags.Dataset
     error('Dataset has not been created.');
 end
 
-if ~isfield(Project, 'Validation') || ~isfield(Project.Validation, 'DatasetOK') || ~Project.Validation.DatasetOK
+if ~isfield(Project, 'Validation') || ~isstruct(Project.Validation) || ...
+        ~isscalar(Project.Validation) || ...
+        ~isfield(Project.Validation, 'DatasetOK') || ...
+        ~isscalar(Project.Validation.DatasetOK) || ~Project.Validation.DatasetOK
     error('Dataset validation failed.');
 end
 
-if ~isfield(Project, 'Dataset') || isempty(Project.Dataset.Trajectory)
-    error('Project.Dataset is empty.');
+if ~isfield(Project, 'Dataset') || ~isstruct(Project.Dataset) || ...
+        ~isscalar(Project.Dataset)
+    error('Project.Dataset not found.');
 end
 
 if ~isfield(Project.Dataset, 'Trajectory') || isempty(Project.Dataset.Trajectory)
     error('Project.Dataset.Trajectory not found.');
 end
 
-if ~isfield(Project.Dataset, 'nTraj')
-    error('Project.Dataset.nTraj not found.');
+if ~iscell(Project.Dataset.Trajectory)
+    error('Project.Dataset.Trajectory must be a cell array.');
+end
+
+if ~isfield(Project.Dataset, 'nTraj') || ...
+        ~isnumeric(Project.Dataset.nTraj) || ...
+        ~isscalar(Project.Dataset.nTraj) || ...
+        ~isreal(Project.Dataset.nTraj) || ...
+        ~isfinite(Project.Dataset.nTraj) || ...
+        Project.Dataset.nTraj < 0 || ...
+        Project.Dataset.nTraj ~= floor(Project.Dataset.nTraj)
+    error('Project.Dataset.nTraj must be a nonnegative integer scalar.');
+end
+
+if numel(Project.Dataset.Trajectory) ~= Project.Dataset.nTraj
+    error('Project.Dataset.Trajectory length does not match Project.Dataset.nTraj.');
+end
+
+if ~isfield(Project.Dataset, 'dt') || ...
+        ~isnumeric(Project.Dataset.dt) || ...
+        ~isscalar(Project.Dataset.dt) || ...
+        ~isreal(Project.Dataset.dt) || ...
+        ~isfinite(Project.Dataset.dt) || Project.Dataset.dt <= 0
+    error('Project.Dataset.dt must be a positive finite numeric scalar.');
 end
 
 %% --------------------------------------------------------
@@ -113,8 +146,12 @@ for i = 1:nTraj
 
     trj = Dataset.Trajectory{i};
 
-    if isempty(trj) || ~isnumeric(trj) || ~ismatrix(trj)
+    if isempty(trj)
         continue
+    end
+
+    if ~isnumeric(trj) || ~ismatrix(trj)
+        error('Trajectory %d must be a numeric matrix.', i);
     end
 
     % Geometry owns the canonical coordinate vectors and all primitives
@@ -144,20 +181,16 @@ for i = 1:nTraj
     Geometry.Velocity{i} = primitives.Velocity;
     Geometry.Acceleration{i} = primitives.Acceleration;
 
+    Geometry.NetDisplacement(i) = primitives.NetDisplacement;
+    Geometry.CumulativeDistance(i) = primitives.CumulativeDistance;
+    Geometry.NSteps(i) = numel(primitives.StepLength);
+
     if nPoint < 2
-        Geometry.NetDisplacement(i) = 0;
-        Geometry.CumulativeDistance(i) = 0;
-        Geometry.NSteps(i) = 0;
         continue
     end
 
-    Geometry.NetDisplacement(i) = sqrt((x(end) - x(1))^2 + (y(end) - y(1))^2);
-    Geometry.CumulativeDistance(i) = sum(primitives.StepLength);
-
-    Geometry.NSteps(i) = numel(primitives.StepLength);
-
-    totalSteps = totalSteps + numel(primitives.StepLength);
-    totalDistance = totalDistance + sum(primitives.StepLength);
+    totalSteps = totalSteps + Geometry.NSteps(i);
+    totalDistance = totalDistance + Geometry.CumulativeDistance(i);
     validTracks = validTracks + 1;
 
 end
@@ -241,6 +274,8 @@ primitives.StepLength = [];
 primitives.Direction = [];
 primitives.Velocity = [];
 primitives.Acceleration = [];
+primitives.NetDisplacement = 0;
+primitives.CumulativeDistance = 0;
 
 if numel(x) < 2
     return
@@ -266,6 +301,9 @@ primitives.StepLength = step;
 primitives.Direction = direction;
 primitives.Velocity = velocity;
 primitives.Acceleration = acceleration;
+primitives.NetDisplacement = sqrt((x(end) - x(1))^2 + ...
+    (y(end) - y(1))^2);
+primitives.CumulativeDistance = sum(step);
 
 end
 
