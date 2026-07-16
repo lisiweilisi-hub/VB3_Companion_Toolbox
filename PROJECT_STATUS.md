@@ -40,23 +40,19 @@ Milestone 1 — Kinematics
 
 Current RC
 
-RC003
-
-
+RC004
 
 Current Module
 
-SPT\_Kinematics\_Step
-
-
+SPT_Kinematics_Trajectory
 
 Status
 
-Implemented, pending MATLAB R2016b test
+RC003 Frozen
 
-
+7/7 MATLAB Tests Passed
 
 Next
 
-Implement SPT\_Kinematics\_Step
+Implement Trajectory
 
