@@ -61,8 +61,9 @@ ProjectB.HMM = struct('nStates', 99);
 ProjectA = SPT_Kinematics_Step(ProjectA);
 ProjectB = SPT_Kinematics_Step(ProjectB);
 
-verifyEqual(testCase, ProjectA.Analysis.Kinematics.Step, ...
-    ProjectB.Analysis.Kinematics.Step);
+verifyTrue(testCase, isequaln( ...
+    ProjectA.Analysis.Kinematics.Step, ...
+    ProjectB.Analysis.Kinematics.Step));
 
 end
 
