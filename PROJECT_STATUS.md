@@ -40,19 +40,19 @@ Milestone 1 — Kinematics
 
 Current RC
 
-RC009 — Frozen
+RC010 — Frozen
 
 Current Module
 
-SPT_Kinematics_Diffusion
+SPT_Kinematics_StateClassification
 
 Status
 
-RC001 Regression Harness            ✓ Frozen
+RC001 Regression Harness               ✓ Frozen
 
-RC002 Geometry Provider             ✓ Frozen
+RC002 Geometry Provider                ✓ Frozen
 
-RC003 Kinematics Step               ✓ Frozen
+RC003 Kinematics Step                  ✓ Frozen
 
 RC004.1A Trajectory Skeleton  ✓ Frozen
 
@@ -62,7 +62,7 @@ RC004.3 Trajectory Tests      ✓ Frozen
 
 RC004.4 Trajectory Refinement ✓ Frozen
 
-RC004 Kinematics Trajectory         ✓ Frozen
+RC004 Kinematics Trajectory            ✓ Frozen
 
 RC005.1 Confinement Skeleton   ✓ Frozen
 
@@ -72,7 +72,7 @@ RC005.3 Confinement Tests      ✓ Frozen
 
 RC005.4 Confinement Refinement ✓ Frozen
 
-RC005 Kinematics Confinement        ✓ Frozen
+RC005 Kinematics Confinement           ✓ Frozen
 
 RC006.1 Turning Angle Skeleton   ✓ Frozen
 
@@ -82,7 +82,7 @@ RC006.3 Turning Angle Tests      ✓ Frozen
 
 RC006.4 Turning Angle Refinement ✓ Frozen
 
-RC006 Kinematics Turning Angle      ✓ Frozen
+RC006 Kinematics Turning Angle         ✓ Frozen
 
 RC007.1 TrajectorySamples Skeleton  ✓ Frozen
 
@@ -92,7 +92,7 @@ RC007.3 TrajectorySamples Tests     ✓ Frozen
 
 RC007.4 TrajectorySamples Refinement ✓ Frozen
 
-RC007 Kinematics TrajectorySamples  ✓ Frozen
+RC007 Kinematics TrajectorySamples     ✓ Frozen
 
 RC008.1 MSD Skeleton                ✓ Frozen
 
@@ -102,7 +102,7 @@ RC008.3 MSD Tests                   ✓ Frozen
 
 RC008.4 MSD Refinement              ✓ Frozen
 
-RC008 Kinematics MSD                ✓ Frozen
+RC008 Kinematics MSD                  ✓ Frozen
 
 RC009.1 Diffusion Skeleton          ✓ Frozen
 
@@ -112,9 +112,19 @@ RC009.3 Diffusion Tests             ✓ Frozen
 
 RC009.4 Diffusion Refinement        ✓ Frozen
 
-RC009 Kinematics Diffusion          ✓ Frozen
+RC009 Kinematics Diffusion            ✓ Frozen
 
-MATLAB tests passed: 61/61
+RC010.1 State Classification Skeleton  ✓ Frozen
+
+RC010.2 State Classification Core      ✓ Frozen
+
+RC010.3 State Classification Tests     ✓ Frozen
+
+RC010.4 State Classification Refinement ✓ Frozen
+
+RC010 Kinematics State Classification    ✓ Frozen
+
+MATLAB tests passed: 70/70
 
 Public API:
 
@@ -126,6 +136,14 @@ Summary
 
 Validation
 
+Core behavior:
+
+Validated diffusion fits produce BrownianCandidate; unavailable or invalid evidence remains Unclassified
+
+Validation failures suppress classification results
+
+Forbidden input scan: Clean
+
 Added baseline 2D Brownian fitting over the first 10 valid MSD points
 
 D = slope / 4
@@ -135,6 +153,8 @@ Invalid, negative-slope, and validation-failed estimates are suppressed
 Per-track MSD, X/Y components, pair counts, pooled ensemble MSD, trajectory mean/SEM, and actual lag times were added
 
 Refinement: zero-variance MSD fits no longer report a false perfect R²; undefined estimates are suppressed
+
+Refinement: unsuccessful diffusion fits retaining partial coefficient or R² values now fail validation and suppress classification
 
 Exact focused MATLAB suite completed successfully
 
@@ -160,15 +180,17 @@ Focused trajectory numerical check: Passed
 
 API renamed: Trajectory.Table -> Trajectory.ByTrack
 
-Data source: Project.Analysis.Kinematics.MSD
+Inputs: frozen Analysis outputs only
 
-Public output: Project.Analysis.Kinematics.Diffusion
+Public output: Project.Analysis.Kinematics.StateClassification
 
 No frozen modules were modified.
 
 No test files were modified.
 
+Other pre-existing worktree changes were untouched.
+
 Next
 
-RC009 Kinematics Diffusion complete and frozen.
+RC010 Kinematics State Classification complete and frozen.
 
