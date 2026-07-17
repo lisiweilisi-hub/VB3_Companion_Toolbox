@@ -40,11 +40,11 @@ Milestone 1 — Kinematics
 
 Current RC
 
-RC011 — Frozen
+RC012 — Frozen
 
 Current Module
 
-Analysis Pipeline Integration
+Project.Analysis.Kinematics.TurningBehavior
 
 Status
 
@@ -134,7 +134,53 @@ RC011.4 Regression Integration           ✓ Frozen
 
 RC011 Analysis Pipeline Integration      ✓ Frozen
 
-MATLAB tests passed: 4/4
+RC012.1 TurningBehavior Skeleton         ✓ Frozen
+
+RC012.2 TurningBehavior Core             ✓ Frozen
+
+RC012.3 TurningBehavior Tests            ✓ Frozen
+
+RC012.4 TurningBehavior Refinement       ✓ Frozen
+
+RC012 Kinematics TurningBehavior         ✓ Frozen
+
+MATLAB tests passed: 81/81
+
+The public output includes:
+
+AngleTable
+
+SegmentTable
+
+ByTrack
+
+Ensemble
+
+Summary
+
+Validation
+
+TurningBehavior summary fields were refined
+
+Signed turning-angle information and contiguous turning segment summaries are covered
+
+No MATLAB source or frozen modules were modified
+
+No other test files were modified
+
+Focused numerical smoke test: passed
+
+The module reads only frozen TrajectorySamples and Trajectory outputs
+
+The standard modular API is exposed
+
+Local and upstream validation status are propagated
+
+Angle-resolved core TurningBehavior calculations were implemented
+
+No frozen MATLAB modules were modified
+
+No test files were modified
 
 Public pipeline integration coverage remains stable
 
@@ -222,5 +268,5 @@ Pre-existing PROJECT_STATUS.md change was untouched except for this freeze updat
 
 Next
 
-RC011 Analysis Pipeline Integration complete and frozen.
+RC012 TurningBehavior complete and frozen.
 
