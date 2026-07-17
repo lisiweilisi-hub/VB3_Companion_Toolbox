@@ -40,11 +40,11 @@ Milestone 1 — Kinematics
 
 Current RC
 
-RC008 — Frozen
+RC009 — Frozen
 
 Current Module
 
-SPT_Kinematics_MSD
+SPT_Kinematics_Diffusion
 
 Status
 
@@ -104,7 +104,17 @@ RC008.4 MSD Refinement              ✓ Frozen
 
 RC008 Kinematics MSD                ✓ Frozen
 
-MATLAB tests passed: 52/52
+RC009.1 Diffusion Skeleton          ✓ Frozen
+
+RC009.2 Diffusion Core              ✓ Frozen
+
+RC009.3 Diffusion Tests             ✓ Frozen
+
+RC009.4 Diffusion Refinement        ✓ Frozen
+
+RC009 Kinematics Diffusion          ✓ Frozen
+
+MATLAB tests passed: 61/61
 
 Public API:
 
@@ -116,9 +126,15 @@ Summary
 
 Validation
 
+Added baseline 2D Brownian fitting over the first 10 valid MSD points
+
+D = slope / 4
+
+Invalid, negative-slope, and validation-failed estimates are suppressed
+
 Per-track MSD, X/Y components, pair counts, pooled ensemble MSD, trajectory mean/SEM, and actual lag times were added
 
-Refinement: nonfinite displacement, squared-distance, or lag-time calculations now fail validation and suppress partial MSD results
+Refinement: zero-variance MSD fits no longer report a false perfect R²; undefined estimates are suppressed
 
 Exact focused MATLAB suite completed successfully
 
@@ -144,9 +160,9 @@ Focused trajectory numerical check: Passed
 
 API renamed: Trajectory.Table -> Trajectory.ByTrack
 
-Data source: Project.Analysis.Kinematics.TrajectorySamples
+Data source: Project.Analysis.Kinematics.MSD
 
-Public output: Project.Analysis.Kinematics.MSD
+Public output: Project.Analysis.Kinematics.Diffusion
 
 No frozen modules were modified.
 
@@ -154,5 +170,5 @@ No test files were modified.
 
 Next
 
-RC008 Kinematics MSD complete and frozen.
+RC009 Kinematics Diffusion complete and frozen.
 
