@@ -40,11 +40,11 @@ Milestone 1 — Kinematics
 
 Current RC
 
-RC012 — Frozen
+RC013.3
 
 Current Module
 
-Project.Analysis.Kinematics.TurningBehavior
+SPT_Kinematics_StateClassification
 
 Status
 
@@ -142,9 +142,41 @@ RC012.3 TurningBehavior Tests            ✓ Frozen
 
 RC012.4 TurningBehavior Refinement       ✓ Frozen
 
-RC012 Kinematics TurningBehavior         ✓ Frozen
+RC012 TurningBehavior                    ✓ Frozen
 
-MATLAB tests passed: 81/81
+RC013.1 StateClassification Evidence     ✓ Frozen
+
+RC013.2 StateClassification Fusion       ✓ Frozen
+
+MATLAB tests passed: 82/82
+
+Verification labels included:
+
+BrownianCandidate
+
+ConfinedCandidate
+
+RotationalCandidate
+
+SpiralCandidate
+
+OscillatoryCandidate
+
+MixedCandidate
+
+Unclassified
+
+TurningBehavior evidence is now actively used in state fusion
+
+Strong turning evidence combined with Brownian diffusion produces MixedCandidate
+
+Validation failures suppress classification
+
+TurningBehavior evidence is now available in StateClassification.ByTrack
+
+The test fixtures were updated for the newly mandatory module
+
+No frozen production modules were modified
 
 The public output includes:
 
@@ -268,5 +300,7 @@ Pre-existing PROJECT_STATUS.md change was untouched except for this freeze updat
 
 Next
 
-RC012 TurningBehavior complete and frozen.
+RC013.2 StateClassification Fusion complete and frozen.
+
+Current work proceeds with RC013.3.
 

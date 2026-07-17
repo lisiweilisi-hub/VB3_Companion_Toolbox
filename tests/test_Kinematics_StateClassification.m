@@ -37,7 +37,16 @@ verifyEqual(testCase, S.ByTrack.HasConfinementEvidence, [true; false]);
 verifyEqual(testCase, S.ByTrack.HasTurningAngleEvidence, [true; false]);
 verifyEqual(testCase, S.ByTrack.HasMSDEvidence, [true; true]);
 verifyEqual(testCase, S.ByTrack.HasDiffusionEvidence, [true; false]);
-verifyEqual(testCase, S.ByTrack.NAvailableFeatures, [4; 1]);
+verifyEqual(testCase, S.ByTrack.TurningBehaviorAvailable, [true; false]);
+verifyEqual(testCase, S.ByTrack.TurningBehaviorEligible, [true; false]);
+verifyEqual(testCase, S.ByTrack.TurningBehaviorClass, ...
+    {'BrownianLike';'Unavailable'});
+verifyEqual(testCase, S.ByTrack.BehaviorLabel, ...
+    {'BrownianLike';'Unclassified'});
+verifyEqual(testCase, S.ByTrack.BehaviorScore, [0.8; 0], ...
+    'AbsTol', 1e-12);
+verifyEqual(testCase, S.ByTrack.BehaviorClassified, [true; false]);
+verifyEqual(testCase, S.ByTrack.NAvailableFeatures, [5; 1]);
 verifyEqual(testCase, S.ByTrack.ClassificationEligible, [true; true]);
 verifyEqual(testCase, S.ByTrack.ClassificationCode, [1; 0]);
 verifyEqual(testCase, S.ByTrack.ClassificationLabel, ...
@@ -56,7 +65,7 @@ verifyEqual(testCase, S.Ensemble.NClassifiedTrajectories, 1);
 verifyEqual(testCase, S.Ensemble.NBrownianCandidates, 1);
 verifyEqual(testCase, S.Ensemble.NUnclassifiedTrajectories, 1);
 verifyEqual(testCase, S.Ensemble.EligibleFraction, 1, 'AbsTol', 1e-12);
-verifyEqual(testCase, S.Ensemble.MeanAvailableFeatures, 2.5, ...
+verifyEqual(testCase, S.Ensemble.MeanAvailableFeatures, 3, ...
     'AbsTol', 1e-12);
 verifyEqual(testCase, S.Ensemble.BrownianCandidateFraction, 0.5, ...
     'AbsTol', 1e-12);
@@ -126,7 +135,8 @@ end
 function testEvidenceIsJoinedByDatasetIndex(testCase)
 
 Project = makeProject();
-names = {'Trajectory','Confinement','TurningAngle','MSD','Diffusion'};
+names = {'Trajectory','Confinement','TurningAngle','MSD','Diffusion', ...
+    'TurningBehavior'};
 for i = 1:numel(names)
     name = names{i};
     Project.Analysis.Kinematics.(name).ByTrack = ...
@@ -144,6 +154,7 @@ verifyTrue(testCase, S.Validation.SortedInternally.Confinement);
 verifyTrue(testCase, S.Validation.SortedInternally.TurningAngle);
 verifyTrue(testCase, S.Validation.SortedInternally.MSD);
 verifyTrue(testCase, S.Validation.SortedInternally.Diffusion);
+verifyTrue(testCase, S.Validation.SortedInternally.TurningBehavior);
 
 end
 
@@ -207,22 +218,92 @@ S = Project.Analysis.Kinematics.StateClassification;
 
 verifyTrue(testCase, S.Validation.OK);
 verifyEqual(testCase, S.ByTrack.HasDiffusionEvidence, [false; false]);
-verifyEqual(testCase, S.ByTrack.NAvailableFeatures, [3; 1]);
+verifyEqual(testCase, S.ByTrack.NAvailableFeatures, [4; 1]);
 verifyEqual(testCase, S.ByTrack.ClassificationEligible, [true; true]);
-verifyEqual(testCase, S.ByTrack.ClassificationCode, [0; 0]);
+verifyEqual(testCase, S.ByTrack.ClassificationCode, [1; 0]);
 verifyEqual(testCase, S.ByTrack.ClassificationLabel, ...
-    {'Unclassified';'Unclassified'});
-verifyEqual(testCase, S.ByTrack.ClassificationSuccessful, [false; false]);
-verifyEqual(testCase, S.Ensemble.NClassifiedTrajectories, 0);
+    {'BrownianCandidate';'Unclassified'});
+verifyEqual(testCase, S.ByTrack.ClassificationConfidence(1), 0.8, ...
+    'AbsTol', 1e-12);
+verifyEqual(testCase, S.ByTrack.ClassificationSuccessful, [true; false]);
+verifyEqual(testCase, S.Ensemble.NClassifiedTrajectories, 1);
 verifyTrue(testCase, isnan(S.Ensemble.MeanClassifiedDiffusionCoefficient));
 
 end
 
 % =====================================================================
+function testTurningBehaviorStateFusionLabels(testCase)
+
+turningCases = { ...
+    'ClockwiseRotation', 'ClockwiseRotation', 3, 'RotationalCandidate'; ...
+    'SpiralIn', 'SpiralIn', 4, 'SpiralCandidate'; ...
+    'Oscillation', 'Oscillation', 5, 'OscillatoryCandidate'; ...
+    'MixedRotation', 'Mixed', 6, 'MixedCandidate'};
+for i = 1:size(turningCases, 1)
+    Project = makeProject();
+    Project = suppressFirstDiffusion(Project);
+    Project.Analysis.Kinematics.Confinement.ByTrack. ...
+        ConfinementEligible(1) = false;
+    Project = setFirstTurningBehavior(Project, turningCases{i, 1}, ...
+        turningCases{i, 2}, 0.8);
+
+    Project = SPT_Kinematics_StateClassification(Project);
+    T = Project.Analysis.Kinematics.StateClassification.ByTrack;
+    verifyEqual(testCase, T.ClassificationCode(1), turningCases{i, 3});
+    verifyEqual(testCase, T.ClassificationLabel{1}, turningCases{i, 4});
+    verifyEqual(testCase, T.ClassificationConfidence(1), 0.8, ...
+        'AbsTol', 1e-12);
+    verifyTrue(testCase, T.ClassificationSuccessful(1));
+end
+
+Project = makeProject();
+Project = suppressFirstDiffusion(Project);
+Project.Analysis.Kinematics.TurningBehavior.ByTrack. ...
+    TurningBehaviorAvailable(1) = false;
+Project.Analysis.Kinematics.TurningBehavior.ByTrack. ...
+    TurningBehaviorEligible(1) = false;
+Project.Analysis.Kinematics.TurningBehavior.ByTrack. ...
+    TurningBehaviorClass{1} = 'Unavailable';
+Project.Analysis.Kinematics.TurningBehavior.ByTrack. ...
+    BehaviorLabel{1} = 'Unclassified';
+Project.Analysis.Kinematics.TurningBehavior.ByTrack. ...
+    BehaviorScore(1) = 0;
+Project.Analysis.Kinematics.TurningBehavior.ByTrack. ...
+    BehaviorClassified(1) = false;
+Project = SPT_Kinematics_StateClassification(Project);
+T = Project.Analysis.Kinematics.StateClassification.ByTrack;
+verifyEqual(testCase, T.ClassificationCode(1), 2);
+verifyEqual(testCase, T.ClassificationLabel{1}, 'ConfinedCandidate');
+verifyEqual(testCase, T.ClassificationConfidence(1), 1, ...
+    'AbsTol', 1e-12);
+
+Project = makeProject();
+Project = setFirstTurningBehavior(Project, ...
+    'ClockwiseRotation', 'ClockwiseRotation', 0.8);
+Project = SPT_Kinematics_StateClassification(Project);
+T = Project.Analysis.Kinematics.StateClassification.ByTrack;
+verifyEqual(testCase, T.ClassificationCode(1), 6);
+verifyEqual(testCase, T.ClassificationLabel{1}, 'MixedCandidate');
+verifyEqual(testCase, T.ClassificationConfidence(1), 0.85, ...
+    'AbsTol', 1e-12);
+
+Project = makeProject();
+Project = setFirstTurningBehavior(Project, ...
+    'ClockwiseRotation', 'ClockwiseRotation', 0.4);
+Project = SPT_Kinematics_StateClassification(Project);
+T = Project.Analysis.Kinematics.StateClassification.ByTrack;
+verifyEqual(testCase, T.ClassificationCode(1), 1);
+verifyEqual(testCase, T.ClassificationLabel{1}, 'BrownianCandidate');
+verifyEqual(testCase, T.ClassificationConfidence(1), 0.9, ...
+    'AbsTol', 1e-12);
+verifyEqual(testCase, T.ClassificationLabel{2}, 'Unclassified');
+
+end
+% =====================================================================
 function testMismatchedFrozenIdentifiersSuppressClassification(testCase)
 
 Project = makeProject();
-Project.Analysis.Kinematics.Confinement.ByTrack.RawIndex(1) = 999;
+Project.Analysis.Kinematics.TurningBehavior.ByTrack.RawIndex(1) = 999;
 Project = SPT_Kinematics_StateClassification(Project);
 S = Project.Analysis.Kinematics.StateClassification;
 
@@ -243,19 +324,48 @@ forbidden = {'Project.Dataset', 'Project.Tables.Localization', ...
     'SPT_Kinematics_Step(', 'SPT_Kinematics_Trajectory(', ...
     'SPT_Kinematics_Confinement(', 'SPT_Kinematics_TurningAngle(', ...
     'SPT_Kinematics_TrajectorySamples(', 'SPT_Kinematics_MSD(', ...
-    'SPT_Kinematics_Diffusion('};
+    'SPT_Kinematics_Diffusion(', ...
+    'SPT_Kinematics_TurningBehavior('};
 for i = 1:numel(forbidden)
     verifyEmpty(testCase, strfind(source, forbidden{i})); %#ok<STREMP>
 end
 required = {'Kinematics.Trajectory', 'Kinematics.Confinement', ...
     'Kinematics.TurningAngle', 'Kinematics.MSD', ...
-    'Kinematics.Diffusion'};
+    'Kinematics.Diffusion', 'Kinematics.TurningBehavior'};
 for i = 1:numel(required)
     verifyNotEmpty(testCase, strfind(source, required{i})); %#ok<STREMP>
 end
 
 end
 
+% =====================================================================
+function Project = suppressFirstDiffusion(Project)
+
+Project.Analysis.Kinematics.Diffusion.ByTrack. ...
+    DiffusionCoefficient(1) = NaN;
+Project.Analysis.Kinematics.Diffusion.ByTrack.FitRSquared(1) = NaN;
+Project.Analysis.Kinematics.Diffusion.ByTrack.FitSuccessful(1) = false;
+
+end
+
+% =====================================================================
+function Project = setFirstTurningBehavior(Project, behaviorClass, ...
+        behaviorLabel, behaviorScore)
+
+Project.Analysis.Kinematics.TurningBehavior.ByTrack. ...
+    TurningBehaviorAvailable(1) = true;
+Project.Analysis.Kinematics.TurningBehavior.ByTrack. ...
+    TurningBehaviorEligible(1) = true;
+Project.Analysis.Kinematics.TurningBehavior.ByTrack. ...
+    TurningBehaviorClass{1} = behaviorClass;
+Project.Analysis.Kinematics.TurningBehavior.ByTrack. ...
+    BehaviorLabel{1} = behaviorLabel;
+Project.Analysis.Kinematics.TurningBehavior.ByTrack. ...
+    BehaviorScore(1) = behaviorScore;
+Project.Analysis.Kinematics.TurningBehavior.ByTrack. ...
+    BehaviorClassified(1) = true;
+
+end
 % =====================================================================
 function Project = makeProject()
 
@@ -289,12 +399,23 @@ DiffusionByTrack.DiffusionCoefficient = [2.5; NaN];
 DiffusionByTrack.FitRSquared = [0.9; NaN];
 DiffusionByTrack.FitSuccessful = [true; false];
 
+TurningBehaviorByTrack = identifierTable();
+TurningBehaviorByTrack.TurningBehaviorAvailable = [true; false];
+TurningBehaviorByTrack.TurningBehaviorEligible = [true; false];
+TurningBehaviorByTrack.TurningBehaviorClass = ...
+    {'BrownianLike';'Unavailable'};
+TurningBehaviorByTrack.BehaviorLabel = ...
+    {'BrownianLike';'Unclassified'};
+TurningBehaviorByTrack.BehaviorScore = [0.8; 0];
+TurningBehaviorByTrack.BehaviorClassified = [true; false];
+
 Kinematics = struct();
 Kinematics.Trajectory = frozenModule(TrajectoryByTrack);
 Kinematics.Confinement = frozenModule(ConfinementByTrack);
 Kinematics.TurningAngle = frozenModule(TurningAngleByTrack);
 Kinematics.MSD = frozenModule(MSDByTrack);
 Kinematics.Diffusion = frozenModule(DiffusionByTrack);
+Kinematics.TurningBehavior = frozenModule(TurningBehaviorByTrack);
 
 end
 
