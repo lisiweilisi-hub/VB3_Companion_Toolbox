@@ -124,7 +124,7 @@ verifyEqual(testCase, S.InPlaceTurning, [true; false; false]);
 end
 
 % =====================================================================
-function testTrackAndEnsembleCoreSummariesRemainUnclassified(testCase)
+function testTrackAndEnsembleDecisionEngine(testCase)
 
 Project = SPT_Kinematics_TurningBehavior(makeProject());
 T = Project.Analysis.Kinematics.TurningBehavior;
@@ -135,11 +135,14 @@ verifyEqual(testCase, T.ByTrack.NCounterclockwiseAngles, [3; 2]);
 verifyEqual(testCase, T.ByTrack.NTurningSegments, [1; 2]);
 verifyEqual(testCase, T.ByTrack.NInPlaceSegments, [1; 0]);
 verifyEqual(testCase, T.ByTrack.TurningBehaviorEligible, [true; true]);
-verifyEqual(testCase, T.ByTrack.BehaviorCode, [0; 0]);
+verifyEqual(testCase, T.ByTrack.BehaviorCode, [6; 5]);
 verifyEqual(testCase, T.ByTrack.BehaviorLabel, ...
-    {'Unclassified';'Unclassified'});
-verifyEqual(testCase, T.ByTrack.BehaviorClassified, [false; false]);
-verifyTrue(testCase, all(isnan(T.ByTrack.BehaviorScore)));
+    {'InPlaceRotation';'Oscillation'});
+verifyEqual(testCase, T.ByTrack.BehaviorClassified, [true; true]);
+verifyEqual(testCase, T.ByTrack.BehaviorScore, [1; 2/3], ...
+    'AbsTol', 1e-12);
+verifyGreaterThanOrEqual(testCase, T.ByTrack.BehaviorScore, [0; 0]);
+verifyLessThanOrEqual(testCase, T.ByTrack.BehaviorScore, [1; 1]);
 
 verifyEqual(testCase, T.Ensemble.NTurningAnglesComputed, 6);
 verifyEqual(testCase, T.Ensemble.NTurningSegments, 3);
@@ -148,7 +151,7 @@ verifyEqual(testCase, T.Ensemble.NCounterclockwiseAngles, 5);
 verifyEqual(testCase, T.Ensemble.NInPlaceSegments, 1);
 verifyEqual(testCase, T.Summary.nTurningAnglesComputed, 6);
 verifyEqual(testCase, T.Summary.nTurningSegments, 3);
-verifyEqual(testCase, T.Summary.nClassifiedTrajectories, 0);
+verifyEqual(testCase, T.Summary.nClassifiedTrajectories, 2);
 
 end
 
@@ -168,6 +171,11 @@ verifyTrue(testCase, isempty(T.AngleTable));
 verifyTrue(testCase, isempty(T.SegmentTable));
 verifyEqual(testCase, T.ByTrack.NTurningAnglesComputed, [0; 0]);
 verifyEqual(testCase, T.ByTrack.TurningBehaviorEligible, [false; false]);
+verifyEqual(testCase, T.ByTrack.BehaviorCode, [0; 0]);
+verifyEqual(testCase, T.ByTrack.BehaviorLabel, ...
+    {'Unclassified';'Unclassified'});
+verifyEqual(testCase, T.ByTrack.BehaviorScore, [0; 0]);
+verifyEqual(testCase, T.ByTrack.BehaviorClassified, [false; false]);
 
 end
 

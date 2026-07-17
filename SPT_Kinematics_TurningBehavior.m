@@ -168,12 +168,8 @@ Validation.NIncompleteEvidenceTrajectories = ...
 Validation.NRefinedTrajectories = ...
     sum(ByTrack.TurningBehaviorAvailable);
 
-% Public placeholders for the later behavior-classification taxonomy.
-n = height(ByTrack);
-ByTrack.BehaviorCode = zeros(n, 1);
-ByTrack.BehaviorLabel = repmat({'Unclassified'}, n, 1);
-ByTrack.BehaviorScore = nan(n, 1);
-ByTrack.BehaviorClassified = false(n, 1);
+% Deterministic primary behavior decision engine.
+ByTrack = classifyBehavior(ByTrack, Validation.OK);
 
 Ensemble = summarizeEnsemble(ByTrack, Samples, AngleTable, SegmentTable);
 Summary = struct();
@@ -391,6 +387,10 @@ T.OutgoingStepLength = zeros(0, 1);
 T.ChordLength = zeros(0, 1);
 T.SignedAngleRad = zeros(0, 1);
 T.SignedAngleDeg = zeros(0, 1);
+T.LocalCurvature = zeros(0, 1);
+T.CumulativeRotation = zeros(0, 1);
+T.RotationPersistence = zeros(0, 1);
+T.RotationBias = zeros(0, 1);
 T.DirectionCode = zeros(0, 1);
 T.Direction = cell(0, 1);
 T.Radius = zeros(0, 1);
@@ -410,6 +410,8 @@ angleTolerance = sqrt(eps);
 inPlaceThreshold = 0.25;
 
 for i = 1:numel(trackIDs)
+    cumulativeRotation = 0;
+    cumulativeAbsoluteRotation = 0;
     rows = find(Samples.DatasetIndex == trackIDs(i));
     for j = 2:(numel(rows) - 1)
         first = rows(j - 1);
@@ -432,6 +434,10 @@ for i = 1:numel(trackIDs)
 
         signedAngleRad = NaN;
         signedAngleDeg = NaN;
+        localCurvature = NaN;
+        cumulativeRotationValue = NaN;
+        rotationPersistence = NaN;
+        rotationBias = NaN;
         directionCode = 0;
         direction = 'Undefined';
         radius = NaN;
@@ -444,6 +450,22 @@ for i = 1:numel(trackIDs)
         if valid
             signedAngleRad = atan2(crossValue, dotValue);
             signedAngleDeg = signedAngleRad * 180 / pi;
+            cumulativeRotation = cumulativeRotation + signedAngleDeg;
+            cumulativeAbsoluteRotation = cumulativeAbsoluteRotation + ...
+                abs(signedAngleDeg);
+            cumulativeRotationValue = cumulativeRotation;
+            if cumulativeAbsoluteRotation > 0
+                rotationBias = cumulativeRotation / ...
+                    cumulativeAbsoluteRotation;
+                rotationPersistence = abs(rotationBias);
+            else
+                rotationBias = 0;
+                rotationPersistence = 0;
+            end
+            if chordLength > 0
+                localCurvature = 2 * crossValue / ...
+                    (incomingLength * outgoingLength * chordLength);
+            end
             if signedAngleRad > angleTolerance
                 directionCode = 1;
                 direction = 'Counterclockwise';
@@ -487,6 +509,10 @@ for i = 1:numel(trackIDs)
         row.ChordLength = chordLength;
         row.SignedAngleRad = signedAngleRad;
         row.SignedAngleDeg = signedAngleDeg;
+        row.LocalCurvature = localCurvature;
+        row.CumulativeRotation = cumulativeRotationValue;
+        row.RotationPersistence = rotationPersistence;
+        row.RotationBias = rotationBias;
         row.DirectionCode = directionCode;
         row.Direction = {direction};
         row.Radius = radius;
@@ -521,11 +547,14 @@ T.Duration = zeros(0, 1);
 T.CumulativeAbsoluteAngleDeg = zeros(0, 1);
 T.MeanSignedAngleDeg = zeros(0, 1);
 T.MeanAngularVelocityDegPerTime = zeros(0, 1);
+T.RotationRateSTD = zeros(0, 1);
 T.StartRadius = zeros(0, 1);
 T.EndRadius = zeros(0, 1);
 T.MeanRadius = zeros(0, 1);
+T.RadiusSTD = zeros(0, 1);
 T.RadiusTrendSlope = zeros(0, 1);
 T.RadiusTrend = cell(0, 1);
+T.SpiralScore = zeros(0, 1);
 T.PathLength = zeros(0, 1);
 T.NetDisplacement = zeros(0, 1);
 T.InPlaceTurning = false(0, 1);
@@ -591,6 +620,15 @@ inPlaceTurning = pathLength > 0 && ...
     netDisplacement / pathLength <= threshold;
 [radiusSlope, radiusTrend] = calculateRadiusTrend( ...
     A.CenterTime(angleRows), A.Radius(angleRows));
+meanRadius = meanIgnoringNaN(A.Radius(angleRows));
+radiusSTD = stdIgnoringNaN(A.Radius(angleRows));
+spiralScore = NaN;
+if isfinite(meanRadius) && meanRadius > 0 && ...
+        isfinite(A.Radius(firstAngle)) && ...
+        isfinite(A.Radius(lastAngle))
+    spiralScore = (A.Radius(firstAngle) - ...
+        A.Radius(lastAngle)) / meanRadius;
+end
 
 row = table();
 row.DatasetIndex = trackID;
@@ -612,11 +650,15 @@ row.CumulativeAbsoluteAngleDeg = ...
 row.MeanSignedAngleDeg = mean(A.SignedAngleDeg(angleRows));
 row.MeanAngularVelocityDegPerTime = meanIgnoringNaN( ...
     A.AngularVelocityDegPerTime(angleRows));
+row.RotationRateSTD = stdIgnoringNaN( ...
+    A.AngularVelocityDegPerTime(angleRows));
 row.StartRadius = A.Radius(firstAngle);
 row.EndRadius = A.Radius(lastAngle);
-row.MeanRadius = meanIgnoringNaN(A.Radius(angleRows));
+row.MeanRadius = meanRadius;
+row.RadiusSTD = radiusSTD;
 row.RadiusTrendSlope = radiusSlope;
 row.RadiusTrend = {radiusTrend};
+row.SpiralScore = spiralScore;
 row.PathLength = pathLength;
 row.NetDisplacement = netDisplacement;
 row.InPlaceTurning = inPlaceTurning;
@@ -657,6 +699,13 @@ T.NTurningAnglesComputed = zeros(n, 1);
 T.NClockwiseAngles = zeros(n, 1);
 T.NCounterclockwiseAngles = zeros(n, 1);
 T.NStraightAngles = zeros(n, 1);
+T.MeanCWAngle = nan(n, 1);
+T.MeanCCWAngle = nan(n, 1);
+T.TotalRotation = nan(n, 1);
+T.SpiralScore = nan(n, 1);
+T.OscillationScore = nan(n, 1);
+T.RotationPersistence = nan(n, 1);
+T.RotationBias = nan(n, 1);
 T.MeanAbsoluteAngleDeg = nan(n, 1);
 T.NetSignedAngleDeg = nan(n, 1);
 T.MeanRadius = nan(n, 1);
@@ -667,16 +716,49 @@ for i = 1:n
     angleRows = Angles.DatasetIndex == T.DatasetIndex(i) & ...
         Angles.AngleValid;
     segmentRows = Segments.DatasetIndex == T.DatasetIndex(i);
+    clockwiseRows = angleRows & Angles.DirectionCode < 0;
+    counterclockwiseRows = angleRows & Angles.DirectionCode > 0;
     T.NTurningAnglesComputed(i) = sum(angleRows);
-    T.NClockwiseAngles(i) = sum(angleRows & Angles.DirectionCode < 0);
-    T.NCounterclockwiseAngles(i) = ...
-        sum(angleRows & Angles.DirectionCode > 0);
+    T.NClockwiseAngles(i) = sum(clockwiseRows);
+    T.NCounterclockwiseAngles(i) = sum(counterclockwiseRows);
     T.NStraightAngles(i) = sum(angleRows & Angles.DirectionCode == 0);
+    if any(clockwiseRows)
+        T.MeanCWAngle(i) = mean(Angles.SignedAngleDeg(clockwiseRows));
+    end
+    if any(counterclockwiseRows)
+        T.MeanCCWAngle(i) = ...
+            mean(Angles.SignedAngleDeg(counterclockwiseRows));
+    end
     if any(angleRows)
+        T.TotalRotation(i) = sum(abs(Angles.SignedAngleDeg(angleRows)));
         T.MeanAbsoluteAngleDeg(i) = ...
             mean(abs(Angles.SignedAngleDeg(angleRows)));
         T.NetSignedAngleDeg(i) = sum(Angles.SignedAngleDeg(angleRows));
+        if T.TotalRotation(i) > 0
+            T.RotationBias(i) = ...
+                T.NetSignedAngleDeg(i) / T.TotalRotation(i);
+            T.RotationPersistence(i) = abs(T.RotationBias(i));
+        else
+            T.RotationBias(i) = 0;
+            T.RotationPersistence(i) = 0;
+        end
+        turningDirections = Angles.DirectionCode(angleRows);
+        turningDirections = turningDirections(turningDirections ~= 0);
+        if numel(turningDirections) < 2
+            T.OscillationScore(i) = 0;
+        else
+            T.OscillationScore(i) = sum( ...
+                turningDirections(2:end) ~= ...
+                turningDirections(1:end-1)) / ...
+                (numel(turningDirections) - 1);
+        end
         T.MeanRadius(i) = meanIgnoringNaN(Angles.Radius(angleRows));
+    end
+    finiteSpiral = segmentRows & isfinite(Segments.SpiralScore);
+    if any(finiteSpiral)
+        weights = Segments.NAngles(finiteSpiral);
+        T.SpiralScore(i) = sum(Segments.SpiralScore(finiteSpiral) .* ...
+            weights) / sum(weights);
     end
     T.NTurningSegments(i) = sum(segmentRows);
     T.NInPlaceSegments(i) = ...
@@ -743,19 +825,166 @@ for i = 1:n
 
     if T.NSegments(i) == 0
         T.TurningBehaviorClass{i} = 'Straight';
-    elseif T.HasOscillation(i)
-        T.TurningBehaviorClass{i} = 'Oscillation';
     elseif T.HasSpiralIn(i) && T.HasSpiralOut(i)
-        T.TurningBehaviorClass{i} = 'ComplexTurning';
+        T.TurningBehaviorClass{i} = 'MixedRotation';
     elseif T.HasInPlaceTurn(i)
-        T.TurningBehaviorClass{i} = 'InPlaceTurn';
+        T.TurningBehaviorClass{i} = 'InPlaceRotation';
     elseif T.HasSpiralIn(i)
         T.TurningBehaviorClass{i} = 'SpiralIn';
     elseif T.HasSpiralOut(i)
         T.TurningBehaviorClass{i} = 'SpiralOut';
+    elseif T.HasOscillation(i) && T.OscillationScore(i) >= 0.5
+        T.TurningBehaviorClass{i} = 'AlternatingRotation';
+    elseif T.HasOscillation(i)
+        T.TurningBehaviorClass{i} = 'Oscillation';
+    elseif strcmp(T.PrimaryDirection{i}, 'Clockwise')
+        T.TurningBehaviorClass{i} = 'ClockwiseRotation';
+    elseif strcmp(T.PrimaryDirection{i}, 'Counterclockwise')
+        T.TurningBehaviorClass{i} = 'CounterclockwiseRotation';
     else
-        T.TurningBehaviorClass{i} = 'SustainedTurn';
+        T.TurningBehaviorClass{i} = 'MixedRotation';
     end
+end
+
+end
+% =====================================================================
+function T = classifyBehavior(T, validationOK)
+
+n = height(T);
+T.BehaviorCode = zeros(n, 1);
+T.BehaviorLabel = repmat({'Unclassified'}, n, 1);
+T.BehaviorScore = zeros(n, 1);
+T.BehaviorClassified = false(n, 1);
+
+for i = 1:n
+    validEvidence = logical(validationOK) && ...
+        T.TurningBehaviorEligible(i) && ...
+        T.TurningBehaviorAvailable(i) && ...
+        T.TurningEvidenceComplete(i);
+    if ~validEvidence
+        continue
+    end
+
+    [code, label, score, validClass] = mapBehaviorClass(T, i);
+    if validClass
+        T.BehaviorCode(i) = code;
+        T.BehaviorLabel{i} = label;
+        T.BehaviorScore(i) = score;
+        T.BehaviorClassified(i) = true;
+    end
+end
+
+end
+
+% =====================================================================
+function [code, label, score, validClass] = mapBehaviorClass(T, i)
+
+code = 0;
+label = 'Unclassified';
+score = 0;
+validClass = true;
+className = T.TurningBehaviorClass{i};
+
+switch className
+    case 'ClockwiseRotation'
+        code = 1;
+        label = 'ClockwiseRotation';
+        score = 0.5 * (T.RotationPersistence(i) + ...
+            abs(T.RotationBias(i)));
+    case 'CounterclockwiseRotation'
+        code = 2;
+        label = 'CounterclockwiseRotation';
+        score = 0.5 * (T.RotationPersistence(i) + ...
+            abs(T.RotationBias(i)));
+    case 'SpiralIn'
+        code = 3;
+        label = 'SpiralIn';
+        score = max(absFinite(T.SpiralScore(i)), ...
+            finiteOrZero(T.RotationPersistence(i)));
+    case 'SpiralOut'
+        code = 4;
+        label = 'SpiralOut';
+        score = max(absFinite(T.SpiralScore(i)), ...
+            finiteOrZero(T.RotationPersistence(i)));
+    case {'Oscillation','AlternatingRotation'}
+        code = 5;
+        label = 'Oscillation';
+        score = max(finiteOrZero(T.OscillationScore(i)), ...
+            finiteOrZero(1 - abs(T.RotationBias(i))));
+    case 'InPlaceRotation'
+        code = 6;
+        label = 'InPlaceRotation';
+        score = T.NInPlaceSegments(i) / ...
+            max(T.NTurningSegments(i), 1);
+    case {'MixedRotation','Mixed'}
+        code = 7;
+        label = 'Mixed';
+        score = mixedEvidenceScore(T, i);
+    case {'Straight','BrownianLike'}
+        code = 8;
+        label = 'BrownianLike';
+        score = 1 - max(finiteOrZero(T.RotationPersistence(i)), ...
+            absFinite(T.RotationBias(i)));
+    otherwise
+        validClass = false;
+end
+
+score = clampUnit(score);
+
+end
+
+% =====================================================================
+function score = mixedEvidenceScore(T, i)
+
+scores = zeros(0, 1);
+if T.HasInPlaceTurn(i)
+    scores(end + 1, 1) = T.NInPlaceSegments(i) / ...
+        max(T.NTurningSegments(i), 1);
+end
+if T.HasSpiralIn(i) || T.HasSpiralOut(i)
+    scores(end + 1, 1) = max(absFinite(T.SpiralScore(i)), ...
+        finiteOrZero(T.RotationPersistence(i)));
+end
+if T.HasOscillation(i)
+    scores(end + 1, 1) = max( ...
+        finiteOrZero(T.OscillationScore(i)), ...
+        finiteOrZero(1 - abs(T.RotationBias(i))));
+end
+if isempty(scores)
+    score = max(finiteOrZero(T.RotationPersistence(i)), ...
+        absFinite(T.RotationBias(i)));
+else
+    score = mean(scores);
+end
+
+end
+
+% =====================================================================
+function value = finiteOrZero(value)
+
+if ~isfinite(value)
+    value = 0;
+end
+
+end
+
+% =====================================================================
+function value = absFinite(value)
+
+if isfinite(value)
+    value = abs(value);
+else
+    value = 0;
+end
+
+end
+% =====================================================================
+function value = clampUnit(value)
+
+if ~isfinite(value)
+    value = 0;
+else
+    value = min(1, max(0, value));
 end
 
 end
@@ -806,6 +1035,18 @@ end
 
 end
 
+% =====================================================================
+function y = stdIgnoringNaN(x)
+
+x = x(:);
+x = x(isfinite(x));
+if isempty(x)
+    y = NaN;
+else
+    y = std(x, 1);
+end
+
+end
 % =====================================================================
 function Validation = addIssue(Validation, message)
 
