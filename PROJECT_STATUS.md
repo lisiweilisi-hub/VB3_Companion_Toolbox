@@ -40,11 +40,11 @@ Milestone 1 — Kinematics
 
 Current RC
 
-RC010 — Frozen
+RC011 — Frozen
 
 Current Module
 
-SPT_Kinematics_StateClassification
+Analysis Pipeline Integration
 
 Status
 
@@ -124,7 +124,37 @@ RC010.4 State Classification Refinement ✓ Frozen
 
 RC010 Kinematics State Classification    ✓ Frozen
 
-MATLAB tests passed: 70/70
+RC011.1 Analysis Pipeline Integration    ✓ Frozen
+
+RC011.2 Validation & Failure Injection   ✓ Frozen
+
+RC011.3 Performance Smoke Test           ✓ Frozen
+
+RC011.4 Regression Integration           ✓ Frozen
+
+RC011 Analysis Pipeline Integration      ✓ Frozen
+
+MATLAB tests passed: 4/4
+
+Public pipeline integration coverage remains stable
+
+Performance smoke test completed successfully
+
+Validation failure propagation verified
+
+Pipeline does not silently succeed when upstream validation is false
+
+Downstream modules suppress invalid outputs or fail validation
+
+Canonical join key remains DatasetIndex
+
+Pipeline order verified
+
+Public APIs verified
+
+Validation propagation verified
+
+DatasetIndex remained the canonical join key
 
 Public API:
 
@@ -184,13 +214,13 @@ Inputs: frozen Analysis outputs only
 
 Public output: Project.Analysis.Kinematics.StateClassification
 
-No frozen modules were modified.
+Production MATLAB source files were not modified.
 
-No test files were modified.
+tests/test_AnalysisPipeline.m was updated for RC011.1 through RC011.4.
 
-Other pre-existing worktree changes were untouched.
+Pre-existing PROJECT_STATUS.md change was untouched except for this freeze update.
 
 Next
 
-RC010 Kinematics State Classification complete and frozen.
+RC011 Analysis Pipeline Integration complete and frozen.
 
