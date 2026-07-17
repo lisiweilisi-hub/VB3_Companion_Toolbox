@@ -40,19 +40,19 @@ Milestone 1 — Kinematics
 
 Current RC
 
-RC006.5
+RC007 — Frozen
 
 Current Module
 
-SPT_Kinematics_TurningAngle
+SPT_Kinematics_TrajectorySamples
 
 Status
 
-RC001 Regression Harness         ✓ Frozen
+RC001 Regression Harness            ✓ Frozen
 
-RC002 Geometry Provider          ✓ Frozen
+RC002 Geometry Provider             ✓ Frozen
 
-RC003 Kinematics Step            ✓ Frozen
+RC003 Kinematics Step               ✓ Frozen
 
 RC004.1A Trajectory Skeleton  ✓ Frozen
 
@@ -62,7 +62,7 @@ RC004.3 Trajectory Tests      ✓ Frozen
 
 RC004.4 Trajectory Refinement ✓ Frozen
 
-RC004 Kinematics Trajectory      ✓ Frozen
+RC004 Kinematics Trajectory         ✓ Frozen
 
 RC005.1 Confinement Skeleton   ✓ Frozen
 
@@ -72,7 +72,7 @@ RC005.3 Confinement Tests      ✓ Frozen
 
 RC005.4 Confinement Refinement ✓ Frozen
 
-RC005 Kinematics Confinement     ✓ Frozen
+RC005 Kinematics Confinement        ✓ Frozen
 
 RC006.1 Turning Angle Skeleton   ✓ Frozen
 
@@ -82,11 +82,29 @@ RC006.3 Turning Angle Tests      ✓ Frozen
 
 RC006.4 Turning Angle Refinement ✓ Frozen
 
-RC006 Kinematics Turning Angle    ✓ Frozen
+RC006 Kinematics Turning Angle      ✓ Frozen
 
-MATLAB tests passed: 36/36
+RC007.1 TrajectorySamples Skeleton  ✓ Frozen
+
+RC007.2 TrajectorySamples Core      ✓ Frozen
+
+RC007.3 TrajectorySamples Tests     ✓ Frozen
+
+RC007.4 TrajectorySamples Refinement ✓ Frozen
+
+RC007 TrajectorySamples               ✓ Frozen
+
+MATLAB tests passed: 44/44
+
+Refinement: fractional frame identifiers can no longer remain MSDEligible after failing validation
+
+Exact focused MATLAB suite completed successfully
 
 Identifier eligibility refinement check: Passed
+
+Focused TrajectorySamples contract check: Passed
+
+Focused TrajectorySamples core check: Passed
 
 Focused Turning Angle skeleton check: Passed
 
@@ -104,15 +122,13 @@ Focused trajectory numerical check: Passed
 
 API renamed: Trajectory.Table -> Trajectory.ByTrack
 
-Data source: Project.Analysis.Kinematics.Trajectory.ByTrack
+Data source: Project.Tables.Localization
 
-Public turning-angle output: Project.Analysis.Kinematics.TurningAngle
+Public output: Project.Analysis.Kinematics.TrajectorySamples
 
-No frozen modules were modified.
-
-No test files were modified.
+Frozen modules and test files were not modified.
 
 Next
 
-Continue SPT_Kinematics_TurningAngle at RC006.5
+RC007 TrajectorySamples complete and frozen.
 
