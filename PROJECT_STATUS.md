@@ -40,11 +40,11 @@ Milestone 1 — Kinematics
 
 Current RC
 
-RC007 — Frozen
+RC008 — Frozen
 
 Current Module
 
-SPT_Kinematics_TrajectorySamples
+SPT_Kinematics_MSD
 
 Status
 
@@ -92,11 +92,33 @@ RC007.3 TrajectorySamples Tests     ✓ Frozen
 
 RC007.4 TrajectorySamples Refinement ✓ Frozen
 
-RC007 TrajectorySamples               ✓ Frozen
+RC007 Kinematics TrajectorySamples  ✓ Frozen
 
-MATLAB tests passed: 44/44
+RC008.1 MSD Skeleton                ✓ Frozen
 
-Refinement: fractional frame identifiers can no longer remain MSDEligible after failing validation
+RC008.2 MSD Core                    ✓ Frozen
+
+RC008.3 MSD Tests                   ✓ Frozen
+
+RC008.4 MSD Refinement              ✓ Frozen
+
+RC008 Kinematics MSD                ✓ Frozen
+
+MATLAB tests passed: 52/52
+
+Public API:
+
+ByTrack
+
+Ensemble
+
+Summary
+
+Validation
+
+Per-track MSD, X/Y components, pair counts, pooled ensemble MSD, trajectory mean/SEM, and actual lag times were added
+
+Refinement: nonfinite displacement, squared-distance, or lag-time calculations now fail validation and suppress partial MSD results
 
 Exact focused MATLAB suite completed successfully
 
@@ -122,13 +144,15 @@ Focused trajectory numerical check: Passed
 
 API renamed: Trajectory.Table -> Trajectory.ByTrack
 
-Data source: Project.Tables.Localization
+Data source: Project.Analysis.Kinematics.TrajectorySamples
 
-Public output: Project.Analysis.Kinematics.TrajectorySamples
+Public output: Project.Analysis.Kinematics.MSD
 
-Frozen modules and test files were not modified.
+No frozen modules were modified.
+
+No test files were modified.
 
 Next
 
-RC007 TrajectorySamples complete and frozen.
+RC008 Kinematics MSD complete and frozen.
 
