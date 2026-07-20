@@ -115,7 +115,24 @@ if nargin < 3 || isempty(outputDir)
 end
 
 if nargin < 4 || isempty(maxPreview)
-    maxPreview = min(12, Project.Dataset.nTraj);
+
+    if isfield(Config,'Figure') && ...
+       isfield(Config.Figure,'ExportAllTracks') && ...
+       Config.Figure.ExportAllTracks
+
+        maxPreview = Project.Dataset.nTraj;
+
+    elseif isfield(Config,'Figure') && ...
+           isfield(Config.Figure,'MaxPreview')
+
+        maxPreview = Config.Figure.MaxPreview;
+
+    else
+
+        maxPreview = min(12, Project.Dataset.nTraj);
+
+    end
+
 end
 
 if exist(outputDir, 'dir') ~= 7

@@ -40,8 +40,14 @@ fprintf('=====================================================\n');
 %% Inputs
 %% --------------------------------------------------------
 
-if nargin < 1 || isempty(inputList)
-    error('inputList is required.');
+if nargin<1 || isempty(inputList)
+
+    inputList = uigetdir(pwd,'Select folder');
+
+    if isequal(inputList,0)
+        return
+    end
+
 end
 
 if nargin < 2
@@ -49,8 +55,20 @@ if nargin < 2
 end
 
 if nargin < 3 || isempty(outputDir)
-    outputDir = pwd;
+
+    outputDir = uigetdir(inputList,'Select output folder');
+
+    if isequal(outputDir,0)
+        return
+    end
+
 end
+
+fprintf('\n');
+fprintf('=====================================================\n');
+fprintf('Input folder  : %s\n', inputList);
+fprintf('Output folder : %s\n', outputDir);
+fprintf('=====================================================\n');
 
 if nargin < 4 || isempty(Config)
     Config = VB3_Config();
@@ -113,7 +131,8 @@ nPairs = numel(inputFiles);
 fprintf('\n');
 fprintf('Mode              : %s\n', mode);
 fprintf('Number of pairs   : %d\n', nPairs);
-fprintf('Output directory   : %s\n', outputDir);
+fprintf('Processing mode    : %s\n', mode);
+fprintf('Number of pairs    : %d\n', nPairs);
 
 %% --------------------------------------------------------
 %% Batch object
@@ -149,7 +168,16 @@ for i = 1:nPairs
         error('Cannot find HMM file:\n%s', hmmMAT);
     end
 
-    pairOut = fullfile(outputDir, ['pair_' num2str(i, '%03d')]);
+    %% --------------------------------------------------------
+    %% Output folder (use cell name)
+
+    [~, cellName] = fileparts(inputMAT);
+
+    % Remove "_allTraj" suffix if present
+    cellName = regexprep(cellName, '_allTraj$', '');
+
+    pairOut = fullfile(outputDir, cellName);
+
     ensureDir(pairOut);
 
     fprintf('\n');
@@ -291,10 +319,23 @@ name0 = name;
 name = regexprep(name, '_finalTraj_.*_HMMresult$', '');
 name = regexprep(name, '_HMMresult$', '');
 
-cand = fullfile(folder, [name '.mat']);
-if exist(cand, 'file') == 2 && ~isHMMResultFile(cand)
-    inputFile = cand;
-    return;
+%% Preferred input file names
+
+candidateFiles = { ...
+    fullfile(folder,[name '_allTraj.mat']); ...
+    fullfile(folder,[name '.mat'])};
+
+for k = 1:numel(candidateFiles)
+
+    cand = candidateFiles{k};
+
+    if exist(cand,'file') == 2 && ~isHMMResultFile(cand)
+
+        inputFile = cand;
+        return
+
+    end
+
 end
 
 if nargin < 2 || isempty(rootFolder)
@@ -336,7 +377,10 @@ end
 function row = makeSummaryRow(pairID, inputMAT, hmmMAT, pairOut, Project, status, errMsg)
 
 inputName = getShortName(inputMAT);
-hmmName = getShortName(hmmMAT);
+hmmName   = getShortName(hmmMAT);
+
+[~, cellName] = fileparts(inputMAT);
+cellName = regexprep(cellName, '_allTraj$', '');
 
 nTraj = NaN;
 nStates = NaN;
@@ -433,7 +477,8 @@ end
 
 row = table( ...
     pairID, ...
-    {inputName}, ...
+    {cellName}, ...
+    {inputName},...
     {hmmName}, ...
     {pairOut}, ...
     {status}, ...
@@ -453,6 +498,7 @@ row = table( ...
     nIssues, ...
     'VariableNames', { ...
         'pairID', ...
+        'cellName',...
         'inputFile', ...
         'hmmFile', ...
         'outputDir', ...
@@ -513,24 +559,26 @@ for i = 1:numel(Batch.projects)
     end
 
     if isfield(P, 'Tables')
+        
+        cellName = Batch.summary.cellName{i};
 
         if isfield(P.Tables, 'Localization') && istable(P.Tables.Localization)
-            T = harmonizeLocalizationTable(P.Tables.Localization, i, master.maxStates);
+            T = harmonizeLocalizationTable(P.Tables.Localization, i, cellName, master.maxStates);
             allLoc = [allLoc; T]; %#ok<AGROW>
         end
 
         if isfield(P.Tables, 'Segment') && istable(P.Tables.Segment)
-            T = harmonizeSegmentTable(P.Tables.Segment, i, master.maxStates);
+            T = harmonizeSegmentTable(P.Tables.Segment, i, cellName, master.maxStates);
             allSeg = [allSeg; T]; %#ok<AGROW>
         end
 
         if isfield(P.Tables, 'Track') && istable(P.Tables.Track)
-            T = harmonizeTrackTable(P.Tables.Track, i, master.maxStates);
+            T = harmonizeTrackTable(P.Tables.Track, i, cellName, master.maxStates);
             allTrack = [allTrack; T]; %#ok<AGROW>
         end
 
         if isfield(P.Tables, 'State') && istable(P.Tables.State)
-            T = harmonizeStateTable(P.Tables.State, i, master.maxStates);
+            T = harmonizeStateTable(P.Tables.State, i, cellName, master.maxStates);
             allState = [allState; T]; %#ok<AGROW>
         end
 
@@ -611,7 +659,7 @@ fprintf('\nMaster outputs written to: %s\n', masterDir);
 end
 
 % =====================================================================
-function T = harmonizeLocalizationTable(T, pairID, maxStates)
+function T = harmonizeLocalizationTable(T, pairID, cellName, maxStates)
 
 if isempty(T)
     return;
@@ -619,6 +667,10 @@ end
 
 if ~ismember('sourcePair', T.Properties.VariableNames)
     T.sourcePair = repmat(pairID, height(T), 1);
+end
+
+if ~ismember('cellName', T.Properties.VariableNames)
+    T.cellName = repmat({cellName}, height(T), 1);
 end
 
 for k = 1:maxStates
@@ -633,7 +685,7 @@ T = reorderLocalizationColumns(T);
 end
 
 % =====================================================================
-function T = harmonizeSegmentTable(T, pairID, maxStates)
+function T = harmonizeSegmentTable(T, pairID, cellName, maxStates)
 
 if isempty(T)
     return;
@@ -641,6 +693,10 @@ end
 
 if ~ismember('sourcePair', T.Properties.VariableNames)
     T.sourcePair = repmat(pairID, height(T), 1);
+end
+
+if ~ismember('cellName', T.Properties.VariableNames)
+    T.cellName = repmat({cellName}, height(T), 1);
 end
 
 for k = 1:maxStates
@@ -655,7 +711,7 @@ T = reorderTablePreserve(T);
 end
 
 % =====================================================================
-function T = harmonizeTrackTable(T, pairID, maxStates)
+function T = harmonizeTrackTable(T, pairID, cellName, maxStates)
 
 if isempty(T)
     return;
@@ -663,6 +719,10 @@ end
 
 if ~ismember('sourcePair', T.Properties.VariableNames)
     T.sourcePair = repmat(pairID, height(T), 1);
+end
+
+if ~ismember('cellName', T.Properties.VariableNames)
+    T.cellName = repmat({cellName}, height(T), 1);
 end
 
 for k = 1:maxStates
@@ -677,7 +737,7 @@ T = reorderTablePreserve(T);
 end
 
 % =====================================================================
-function T = harmonizeStateTable(T, pairID, maxStates)
+function T = harmonizeStateTable(T, pairID, cellName, maxStates)
 
 if isempty(T)
     T = table();
@@ -685,6 +745,10 @@ end
 
 if ~ismember('sourcePair', T.Properties.VariableNames)
     T.sourcePair = repmat(pairID, height(T), 1);
+end
+
+if ~ismember('cellName', T.Properties.VariableNames)
+    T.cellName = repmat({cellName}, height(T), 1);
 end
 
 if ismember('State', T.Properties.VariableNames) && ~ismember('state', T.Properties.VariableNames)
@@ -702,7 +766,7 @@ for k = 1:maxStates
     if any(idx)
         rows{k} = T(find(idx, 1, 'first'), :);
     else
-        rows{k} = emptyStateRow(pairID, k, T);
+        rows{k} = emptyStateRow(pairID, cellName, k, T);
     end
 end
 
@@ -716,7 +780,7 @@ T = reorderTablePreserve(T);
 end
 
 % =====================================================================
-function row = emptyStateRow(pairID, stateID, template)
+function row = emptyStateRow(pairID, cellName, stateID, template)
 
 row = template(1, :);
 
@@ -731,6 +795,10 @@ if ismember('sourcePair', row.Properties.VariableNames)
     row.sourcePair = pairID;
 end
 
+if ismember('cellName', row.Properties.VariableNames)
+    row.cellName = {cellName};
+end
+
 if ismember('state', row.Properties.VariableNames)
     row.state = stateID;
 elseif ismember('State', row.Properties.VariableNames)
@@ -742,7 +810,7 @@ end
 % =====================================================================
 function T = reorderLocalizationColumns(T)
 
-preferred = {'sourcePair','DatasetIndex','RawIndex','Tid','Frame','Time','X','Y','State','StepLength'};
+preferred = {'sourcePair','cellName','DatasetIndex','RawIndex','Tid','Frame','Time','X','Y','State','StepLength'};
 vars = T.Properties.VariableNames;
 
 for k = 1:numel(vars)
@@ -763,16 +831,44 @@ end
 function T = reorderTablePreserve(T)
 
 vars = T.Properties.VariableNames;
+
 preferred = {};
 
-if ismember('sourcePair', vars), preferred{end+1} = 'sourcePair'; end
-if ismember('DatasetIndex', vars), preferred{end+1} = 'DatasetIndex'; end
-if ismember('RawIndex', vars), preferred{end+1} = 'RawIndex'; end
-if ismember('Tid', vars), preferred{end+1} = 'Tid'; end
-if ismember('trackIndex', vars), preferred{end+1} = 'trackIndex'; end
-if ismember('segmentID', vars), preferred{end+1} = 'segmentID'; end
-if ismember('state', vars), preferred{end+1} = 'state'; end
-if ismember('State', vars), preferred{end+1} = 'State'; end
+if ismember('sourcePair', vars)
+    preferred{end+1} = 'sourcePair';
+end
+
+if ismember('cellName', vars)
+    preferred{end+1} = 'cellName';
+end
+
+if ismember('DatasetIndex', vars)
+    preferred{end+1} = 'DatasetIndex';
+end
+
+if ismember('RawIndex', vars)
+    preferred{end+1} = 'RawIndex';
+end
+
+if ismember('Tid', vars)
+    preferred{end+1} = 'Tid';
+end
+
+if ismember('trackIndex', vars)
+    preferred{end+1} = 'trackIndex';
+end
+
+if ismember('segmentID', vars)
+    preferred{end+1} = 'segmentID';
+end
+
+if ismember('state', vars)
+    preferred{end+1} = 'state';
+end
+
+if ismember('State', vars)
+    preferred{end+1} = 'State';
+end
 
 preferred = unique(preferred, 'stable');
 preferred = intersect(preferred, vars, 'stable');

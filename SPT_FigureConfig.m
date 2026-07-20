@@ -32,6 +32,7 @@ F.ShowStart = getFieldOrDefault(FG, 'ShowStart', true);
 F.ShowEnd = getFieldOrDefault(FG, 'ShowEnd', true);
 F.ShowState = getFieldOrDefault(FG, 'ShowState', true);
 F.ShowScaleBar = getFieldOrDefault(FG, 'ShowScaleBar', true);
+F.ScaleBarLength = getFieldOrDefault(FG, 'ScaleBarLength', 0.5);
 F.ShowStateSwitch = getFieldOrDefault(FG, 'ShowStateSwitch', true);
 F.ShowTrackID = getFieldOrDefault(FG, 'ShowTrackID', true);
 F.ShowLegend = getFieldOrDefault(FG, 'ShowLegend', true);
@@ -43,6 +44,7 @@ F.SwitchMarker = getFieldOrDefault(FG, 'SwitchMarker', 'p');
 
 F.LineWidth = getFieldOrDefault(FG, 'LineWidth', 1.8);
 F.MarkerSize = getFieldOrDefault(FG, 'MarkerSize', 8);
+F.SwitchMarkerSize = getFieldOrDefault(FG, 'SwitchMarkerSize', 6);
 
 F.BackgroundColor = getFieldOrDefault(FG, 'BackgroundColor', [1 1 1]);
 F.StartColor = getFieldOrDefault(FG, 'StartColor', [0.10 0.70 0.20]);

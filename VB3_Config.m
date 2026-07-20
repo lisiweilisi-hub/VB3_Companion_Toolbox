@@ -78,6 +78,7 @@ Config.Figure.ShowStart = true;
 Config.Figure.ShowEnd = true;
 Config.Figure.ShowState = true;
 Config.Figure.ShowScaleBar = true;
+Config.Figure.ScaleBarLength = 0.5;
 Config.Figure.ShowStateSwitch = true;
 Config.Figure.ShowTrackID = true;
 Config.Figure.ShowLegend = true;
@@ -89,6 +90,7 @@ Config.Figure.SwitchMarker = 'p';
 
 Config.Figure.LineWidth = 1.8;
 Config.Figure.MarkerSize = 8;
+Config.Figure.SwitchMarkerSize = 6;
 
 Config.Figure.BackgroundColor = [1 1 1];
 Config.Figure.StartColor = [0.10 0.70 0.20];
